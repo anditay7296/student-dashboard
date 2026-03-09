@@ -20,32 +20,82 @@ interface DailyEntry {
   total: number;
 }
 
+interface StudentEntry {
+  name: string;
+  email: string;
+  joinDate: string;
+}
+
 interface Stats {
   totalStudents: number;
   onboardingSubmitted: number;
   onboardingPending: number;
   communityNotJoined: number;
-  firstJoinDate: string | null;
-  lastJoinDate: string | null;
+  headlineDate: string;
+  totalStudentsList: StudentEntry[];
+  onboardingPendingList: StudentEntry[];
+  onboardingSubmittedList: StudentEntry[];
+  communityNotJoinedList: { name: string; email: string; date: string; leadDays: number | null }[];
   dailySeries: DailyEntry[];
 }
+
+type CardKey = "total" | "submitted" | "pending" | "notJoined";
 
 function StatCard({
   label,
   value,
   sub,
   color,
+  active,
+  onClick,
 }: {
   label: string;
   value: number | string;
   sub?: string;
   color: string;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <div className={`rounded-2xl p-6 shadow-sm border ${color}`}>
+    <div
+      onClick={onClick}
+      className={`rounded-2xl p-6 shadow-sm border transition-all cursor-pointer select-none ${color} ${
+        active ? "ring-2 ring-blue-400 ring-offset-2" : "hover:shadow-md"
+      }`}
+    >
       <p className="text-sm font-medium text-gray-500">{label}</p>
       <p className="mt-1 text-4xl font-bold text-gray-900">{value}</p>
       {sub && <p className="mt-1 text-sm text-gray-400">{sub}</p>}
+      <p className="mt-2 text-xs text-blue-500 font-medium">
+        {active ? "▲ Hide list" : "▼ Show list"}
+      </p>
+    </div>
+  );
+}
+
+function StudentTable({ rows }: { rows: StudentEntry[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm text-left">
+        <thead>
+          <tr className="border-b border-gray-200">
+            <th className="py-2 pr-6 font-semibold text-gray-600 w-6">#</th>
+            <th className="py-2 pr-6 font-semibold text-gray-600">Name</th>
+            <th className="py-2 pr-6 font-semibold text-gray-600">Email</th>
+            <th className="py-2 font-semibold text-gray-600">Join Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+              <td className="py-2 pr-6 text-gray-400">{i + 1}</td>
+              <td className="py-2 pr-6 text-gray-800">{r.name || "—"}</td>
+              <td className="py-2 pr-6 text-gray-500">{r.email || "—"}</td>
+              <td className="py-2 text-gray-500">{r.joinDate || "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -63,6 +113,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
+  const [selected, setSelected] = useState<CardKey | null>(null);
 
   async function fetchData() {
     try {
@@ -107,9 +158,85 @@ export default function Dashboard() {
     );
   }
 
-  const onboardingRate = stats && stats.totalStudents > 0
-    ? Math.round((stats.onboardingSubmitted / stats.totalStudents) * 100)
-    : 0;
+  const onboardingRate =
+    stats && stats.totalStudents > 0
+      ? Math.round((stats.onboardingSubmitted / stats.totalStudents) * 100)
+      : 0;
+
+  function toggleCard(key: CardKey) {
+    setSelected((prev) => (prev === key ? null : key));
+  }
+
+  const listConfig: Record<
+    CardKey,
+    { label: string; count: number; content: React.ReactNode }
+  > = {
+    total: {
+      label: "Total Students",
+      count: stats?.totalStudents ?? 0,
+      content: <StudentTable rows={stats?.totalStudentsList ?? []} />,
+    },
+    submitted: {
+      label: "Onboarding Submitted",
+      count: stats?.onboardingSubmitted ?? 0,
+      content: <StudentTable rows={stats?.onboardingSubmittedList ?? []} />,
+    },
+    pending: {
+      label: "Onboarding Pending",
+      count: stats?.onboardingPending ?? 0,
+      content: <StudentTable rows={stats?.onboardingPendingList ?? []} />,
+    },
+    notJoined: {
+      label: "Not Joined Community",
+      count: stats?.communityNotJoined ?? 0,
+      content: (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="py-2 pr-6 font-semibold text-gray-600 w-6">#</th>
+                <th className="py-2 pr-6 font-semibold text-gray-600">Name</th>
+                <th className="py-2 pr-6 font-semibold text-gray-600">Email</th>
+                <th className="py-2 pr-6 font-semibold text-gray-600">Date</th>
+                <th className="py-2 pr-6 font-semibold text-gray-600">Leak Time</th>
+                <th className="py-2 font-semibold text-gray-600">Remark</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(stats?.communityNotJoinedList ?? []).map((r, i) => {
+                const overdue = r.leadDays !== null && r.leadDays > 3;
+                const remark =
+                  r.leadDays === null
+                    ? ""
+                    : overdue
+                    ? "Angellie to call immediately"
+                    : "YonZeng please onboard now!";
+                return (
+                  <tr
+                    key={i}
+                    className={
+                      overdue
+                        ? "border-b border-red-100 bg-red-50"
+                        : "border-b border-gray-100 hover:bg-gray-50"
+                    }
+                  >
+                    <td className={`py-2 pr-6 ${overdue ? "text-red-400 font-bold" : "text-gray-400"}`}>{i + 1}</td>
+                    <td className={`py-2 pr-6 ${overdue ? "text-red-700 font-bold" : "text-gray-800"}`}>{r.name || "—"}</td>
+                    <td className={`py-2 pr-6 ${overdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{r.email || "—"}</td>
+                    <td className={`py-2 pr-6 ${overdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{r.date || "—"}</td>
+                    <td className={`py-2 pr-6 ${overdue ? "text-red-700 font-bold" : "text-gray-500"}`}>
+                      {r.leadDays === null ? "—" : r.leadDays}
+                    </td>
+                    <td className={`py-2 ${overdue ? "text-red-700 font-bold" : "text-gray-500"}`}>{remark}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ),
+    },
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 p-6 md:p-10">
@@ -117,12 +244,8 @@ export default function Dashboard() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
-          {stats?.firstJoinDate && stats?.lastJoinDate && (
-            <p className="text-2xl font-semibold text-blue-600 mt-1">
-              {format(parseISO(stats.firstJoinDate), "MMM d, yyyy")}
-              {" — "}
-              {format(parseISO(stats.lastJoinDate), "MMM d, yyyy")}
-            </p>
+          {stats?.headlineDate && (
+            <p className="text-2xl font-semibold text-blue-600 mt-1">{stats.headlineDate}</p>
           )}
           <p className="text-gray-400 text-sm mt-1">Live data from Google Sheets</p>
         </div>
@@ -140,30 +263,59 @@ export default function Dashboard() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatCard
           label="Total Students"
           value={stats?.totalStudents ?? 0}
           color="bg-white border-gray-100"
+          active={selected === "total"}
+          onClick={() => toggleCard("total")}
         />
         <StatCard
           label="Onboarding Submitted"
           value={stats?.onboardingSubmitted ?? 0}
           sub={`${onboardingRate}% completion rate`}
           color="bg-green-50 border-green-100"
+          active={selected === "submitted"}
+          onClick={() => toggleCard("submitted")}
         />
         <StatCard
           label="Onboarding Pending"
           value={stats?.onboardingPending ?? 0}
           color="bg-yellow-50 border-yellow-100"
+          active={selected === "pending"}
+          onClick={() => toggleCard("pending")}
         />
         <StatCard
           label="Not Joined Community"
           value={stats?.communityNotJoined ?? 0}
           sub="via onboarding form (col AA = FALSE)"
           color="bg-orange-50 border-orange-100"
+          active={selected === "notJoined"}
+          onClick={() => toggleCard("notJoined")}
         />
       </div>
+
+      {/* Expandable Student List */}
+      {selected && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">
+              {listConfig[selected].label}
+              <span className="ml-2 text-sm font-normal text-gray-400">
+                ({listConfig[selected].count} students)
+              </span>
+            </h2>
+            <button
+              onClick={() => setSelected(null)}
+              className="text-gray-400 hover:text-gray-600 text-xl font-light leading-none"
+            >
+              ✕
+            </button>
+          </div>
+          {listConfig[selected].content}
+        </div>
+      )}
 
       {/* Cumulative Growth Chart */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">

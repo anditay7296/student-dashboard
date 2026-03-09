@@ -7,7 +7,15 @@ function parseDate(raw: string): Date | null {
   const s = raw.trim();
 
   // Formats that include year
-  const withYear = ["M/d/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "d/M/yyyy", "dd/MM/yyyy", "M-d-yyyy"];
+  const withYear = [
+    "M/d/yyyy H:mm:ss", "M/d/yyyy HH:mm:ss", "M/d/yyyy H:mm", "M/d/yyyy HH:mm",
+    "MM/dd/yyyy H:mm:ss", "MM/dd/yyyy HH:mm:ss",
+    "d/M/yyyy H:mm:ss", "d/M/yyyy HH:mm:ss",
+    "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss",
+    "M/d/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "d/M/yyyy", "dd/MM/yyyy", "M-d-yyyy",
+    "d MMM yyyy", "dd MMM yyyy", "d MMM yyyy HH:mm:ss", "dd MMM yyyy HH:mm:ss",
+    "d MMMM yyyy", "dd MMMM yyyy",
+  ];
   for (const fmt of withYear) {
     const d = parse(s, fmt, new Date());
     if (isValid(d)) return d;
@@ -33,19 +41,37 @@ export async function GET() {
     ]);
 
     // --- Onboarding Form: count rows where col AA = "FALSE" (Not joined community) ---
+    const now = new Date();
     let communityNotJoined = 0;
+    const communityNotJoinedList: { name: string; email: string; date: string; leadDays: number | null }[] = [];
     for (let i = 1; i < onboardingRows.length; i++) {
-      if ((onboardingRows[i][26] || "").trim().toUpperCase() === "FALSE") communityNotJoined++;
+      if ((onboardingRows[i][26] || "").trim().toUpperCase() === "FALSE") {
+        communityNotJoined++;
+        const formDate = parseDate(onboardingRows[i][0] || "");
+        const leadDays = formDate
+          ? Math.floor((now.getTime() - formDate.getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        communityNotJoinedList.push({
+          name: (onboardingRows[i][1] || "").trim(),
+          email: (onboardingRows[i][6] || "").trim(),
+          date: (onboardingRows[i][0] || "").trim(),
+          leadDays,
+        });
+      }
     }
 
     // --- Student List processing ---
-    // Col A (0) = paid date, Col N (13) = onboarding form submitted
+    // Col A (0) = paid date, Col B (1) = name, Col C (2) = email
+    // Col K (10) = status, Col N (13) = onboarding form submitted
     // Skip header row (index 0)
     const dailyCounts: Record<string, number> = {};
     let totalStudents = 0;
     let onboardingSubmitted = 0;
-    let firstDate: Date | null = null;
-    let lastDate: Date | null = null;
+    let latestDate: Date | null = null;
+
+    const totalStudentsList: { name: string; email: string; joinDate: string }[] = [];
+    const onboardingPendingList: { name: string; email: string; joinDate: string }[] = [];
+    const onboardingSubmittedList: { name: string; email: string; joinDate: string }[] = [];
 
     for (let i = 1; i < studentRows.length; i++) {
       const row = studentRows[i];
@@ -62,12 +88,20 @@ export async function GET() {
       const dateKey = format(date, "yyyy-MM-dd");
       dailyCounts[dateKey] = (dailyCounts[dateKey] || 0) + 1;
       totalStudents++;
+      if (!latestDate || date > latestDate) latestDate = date;
 
-      if (!firstDate || date < firstDate) firstDate = date;
-      if (!lastDate || date > lastDate) lastDate = date;
+      const entry = {
+        name: (row[1] || "").trim(),
+        email: (row[2] || "").trim(),
+        joinDate: dateKey,
+      };
+      totalStudentsList.push(entry);
 
       if (onboardingCol.trim() !== "" && onboardingCol.trim().toUpperCase() !== "NO") {
         onboardingSubmitted++;
+        onboardingSubmittedList.push(entry);
+      } else {
+        onboardingPendingList.push(entry);
       }
     }
 
@@ -83,13 +117,22 @@ export async function GET() {
       return { date, count, total: cumulative };
     });
 
+    const headlineStart = "May 22, 2024";
+    const headlineDate =
+      headlineStart && latestDate
+        ? `${headlineStart} — ${format(latestDate, "MMM d, yyyy")}`
+        : headlineStart;
+
     return NextResponse.json({
       totalStudents,
       onboardingSubmitted,
       onboardingPending: totalStudents - onboardingSubmitted,
       communityNotJoined,
-      firstJoinDate: firstDate ? format(firstDate, "yyyy-MM-dd") : null,
-      lastJoinDate: lastDate ? format(lastDate, "yyyy-MM-dd") : null,
+      headlineDate,
+      totalStudentsList,
+      onboardingPendingList,
+      onboardingSubmittedList,
+      communityNotJoinedList,
       dailySeries: cumulativeSeries,
     });
   } catch (err) {
