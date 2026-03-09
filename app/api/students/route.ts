@@ -32,10 +32,10 @@ export async function GET() {
       getOnboardingFormData(),
     ]);
 
-    // --- Onboarding Form: count rows where col AA = "TRUE" (Joined Skool) ---
-    let communityJoined = 0;
+    // --- Onboarding Form: count rows where col AA = "FALSE" (Not joined community) ---
+    let communityNotJoined = 0;
     for (let i = 1; i < onboardingRows.length; i++) {
-      if ((onboardingRows[i][26] || "").trim() === "TRUE") communityJoined++;
+      if ((onboardingRows[i][26] || "").trim().toUpperCase() === "FALSE") communityNotJoined++;
     }
 
     // --- Student List processing ---
@@ -44,13 +44,17 @@ export async function GET() {
     const dailyCounts: Record<string, number> = {};
     let totalStudents = 0;
     let onboardingSubmitted = 0;
+    let firstDate: Date | null = null;
+    let lastDate: Date | null = null;
 
     for (let i = 1; i < studentRows.length; i++) {
       const row = studentRows[i];
       const rawDate = row[0] || "";
+      const statusCol = (row[10] || "").trim(); // Column K = status
       const onboardingCol = row[13] || ""; // Column N
 
       if (!rawDate) continue;
+      if (statusCol.toLowerCase() !== "active") continue;
 
       const date = parseDate(rawDate);
       if (!date) continue;
@@ -59,7 +63,10 @@ export async function GET() {
       dailyCounts[dateKey] = (dailyCounts[dateKey] || 0) + 1;
       totalStudents++;
 
-      if (onboardingCol.trim() !== "") {
+      if (!firstDate || date < firstDate) firstDate = date;
+      if (!lastDate || date > lastDate) lastDate = date;
+
+      if (onboardingCol.trim() !== "" && onboardingCol.trim().toUpperCase() !== "NO") {
         onboardingSubmitted++;
       }
     }
@@ -80,7 +87,9 @@ export async function GET() {
       totalStudents,
       onboardingSubmitted,
       onboardingPending: totalStudents - onboardingSubmitted,
-      communityJoined,
+      communityNotJoined,
+      firstJoinDate: firstDate ? format(firstDate, "yyyy-MM-dd") : null,
+      lastJoinDate: lastDate ? format(lastDate, "yyyy-MM-dd") : null,
       dailySeries: cumulativeSeries,
     });
   } catch (err) {

@@ -24,7 +24,9 @@ interface Stats {
   totalStudents: number;
   onboardingSubmitted: number;
   onboardingPending: number;
-  communityJoined: number;
+  communityNotJoined: number;
+  firstJoinDate: string | null;
+  lastJoinDate: string | null;
   dailySeries: DailyEntry[];
 }
 
@@ -115,6 +117,13 @@ export default function Dashboard() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
+          {stats?.firstJoinDate && stats?.lastJoinDate && (
+            <p className="text-2xl font-semibold text-blue-600 mt-1">
+              {format(parseISO(stats.firstJoinDate), "MMM d, yyyy")}
+              {" — "}
+              {format(parseISO(stats.lastJoinDate), "MMM d, yyyy")}
+            </p>
+          )}
           <p className="text-gray-400 text-sm mt-1">Live data from Google Sheets</p>
         </div>
         <div className="text-right">
@@ -149,10 +158,10 @@ export default function Dashboard() {
           color="bg-yellow-50 border-yellow-100"
         />
         <StatCard
-          label="Joined Community"
-          value={stats?.communityJoined ?? 0}
-          sub="via onboarding form (col AA)"
-          color="bg-blue-50 border-blue-100"
+          label="Not Joined Community"
+          value={stats?.communityNotJoined ?? 0}
+          sub="via onboarding form (col AA = FALSE)"
+          color="bg-orange-50 border-orange-100"
         />
       </div>
 
