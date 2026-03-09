@@ -23,6 +23,7 @@ interface DailyEntry {
 interface StudentEntry {
   name: string;
   email: string;
+  phone: string;
   joinDate: string;
 }
 
@@ -35,7 +36,7 @@ interface Stats {
   totalStudentsList: StudentEntry[];
   onboardingPendingList: StudentEntry[];
   onboardingSubmittedList: StudentEntry[];
-  communityNotJoinedList: { name: string; email: string; date: string; leadDays: number | null }[];
+  communityNotJoinedList: { name: string; email: string; phone: string; date: string; leadDays: number | null }[];
   dailySeries: DailyEntry[];
 }
 
@@ -82,6 +83,7 @@ function StudentTable({ rows }: { rows: StudentEntry[] }) {
             <th className="py-2 pr-6 font-semibold text-gray-600 w-6">#</th>
             <th className="py-2 pr-6 font-semibold text-gray-600">Name</th>
             <th className="py-2 pr-6 font-semibold text-gray-600">Email</th>
+            <th className="py-2 pr-6 font-semibold text-gray-600">Phone</th>
             <th className="py-2 font-semibold text-gray-600">Join Date</th>
           </tr>
         </thead>
@@ -91,6 +93,7 @@ function StudentTable({ rows }: { rows: StudentEntry[] }) {
               <td className="py-2 pr-6 text-gray-400">{i + 1}</td>
               <td className="py-2 pr-6 text-gray-800">{r.name || "—"}</td>
               <td className="py-2 pr-6 text-gray-500">{r.email || "—"}</td>
+              <td className="py-2 pr-6 text-gray-500">{r.phone || "—"}</td>
               <td className="py-2 text-gray-500">{r.joinDate || "—"}</td>
             </tr>
           ))}
@@ -197,6 +200,7 @@ export default function Dashboard() {
                 <th className="py-2 pr-6 font-semibold text-gray-600 w-6">#</th>
                 <th className="py-2 pr-6 font-semibold text-gray-600">Name</th>
                 <th className="py-2 pr-6 font-semibold text-gray-600">Email</th>
+                <th className="py-2 pr-6 font-semibold text-gray-600">Phone</th>
                 <th className="py-2 pr-6 font-semibold text-gray-600">Date</th>
                 <th className="py-2 pr-6 font-semibold text-gray-600">Leak Time</th>
                 <th className="py-2 font-semibold text-gray-600">Remark</th>
@@ -223,6 +227,7 @@ export default function Dashboard() {
                     <td className={`py-2 pr-6 ${overdue ? "text-red-400 font-bold" : "text-gray-400"}`}>{i + 1}</td>
                     <td className={`py-2 pr-6 ${overdue ? "text-red-700 font-bold" : "text-gray-800"}`}>{r.name || "—"}</td>
                     <td className={`py-2 pr-6 ${overdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{r.email || "—"}</td>
+                    <td className={`py-2 pr-6 ${overdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{r.phone || "—"}</td>
                     <td className={`py-2 pr-6 ${overdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{r.date || "—"}</td>
                     <td className={`py-2 pr-6 ${overdue ? "text-red-700 font-bold" : "text-gray-500"}`}>
                       {r.leadDays === null ? "—" : r.leadDays}

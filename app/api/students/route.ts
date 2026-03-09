@@ -43,7 +43,7 @@ export async function GET() {
     // --- Onboarding Form: count rows where col AA = "FALSE" (Not joined community) ---
     const now = new Date();
     let communityNotJoined = 0;
-    const communityNotJoinedList: { name: string; email: string; date: string; leadDays: number | null }[] = [];
+    const communityNotJoinedList: { name: string; email: string; phone: string; date: string; leadDays: number | null }[] = [];
     for (let i = 1; i < onboardingRows.length; i++) {
       if ((onboardingRows[i][26] || "").trim().toUpperCase() === "FALSE") {
         communityNotJoined++;
@@ -54,6 +54,7 @@ export async function GET() {
         communityNotJoinedList.push({
           name: (onboardingRows[i][1] || "").trim(),
           email: (onboardingRows[i][6] || "").trim(),
+          phone: (onboardingRows[i][5] || "").trim(),
           date: (onboardingRows[i][0] || "").trim(),
           leadDays,
         });
@@ -69,9 +70,9 @@ export async function GET() {
     let onboardingSubmitted = 0;
     let latestDate: Date | null = null;
 
-    const totalStudentsList: { name: string; email: string; joinDate: string }[] = [];
-    const onboardingPendingList: { name: string; email: string; joinDate: string }[] = [];
-    const onboardingSubmittedList: { name: string; email: string; joinDate: string }[] = [];
+    const totalStudentsList: { name: string; email: string; phone: string; joinDate: string }[] = [];
+    const onboardingPendingList: { name: string; email: string; phone: string; joinDate: string }[] = [];
+    const onboardingSubmittedList: { name: string; email: string; phone: string; joinDate: string }[] = [];
 
     for (let i = 1; i < studentRows.length; i++) {
       const row = studentRows[i];
@@ -93,6 +94,7 @@ export async function GET() {
       const entry = {
         name: (row[1] || "").trim(),
         email: (row[2] || "").trim(),
+        phone: (row[3] || "").trim(),
         joinDate: dateKey,
       };
       totalStudentsList.push(entry);
