@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
-import { getStudentListData, getOnboardingFormData } from "@/lib/sheets";
+import {
+  getStudentListData,
+  getOnboardingFormData,
+  getZoomReportData,
+} from "@/lib/sheets";
 import { parse, format, isValid } from "date-fns";
 
 function parseDate(raw: string): Date | null {
   if (!raw) return null;
   const s = raw.trim();
 
-  // Formats that include year
   const withYear = [
     "M/d/yyyy H:mm:ss", "M/d/yyyy HH:mm:ss", "M/d/yyyy H:mm", "M/d/yyyy HH:mm",
     "MM/dd/yyyy H:mm:ss", "MM/dd/yyyy HH:mm:ss",
@@ -21,7 +24,6 @@ function parseDate(raw: string): Date | null {
     if (isValid(d)) return d;
   }
 
-  // Formats WITHOUT year (e.g. "May 22 00:00") — try current year down to 3 years ago
   const withoutYear = ["MMM d HH:mm", "MMM dd HH:mm", "MMM d", "MMM dd"];
   const now = new Date();
   for (const fmt of withoutYear) {
@@ -35,15 +37,42 @@ function parseDate(raw: string): Date | null {
 
 export async function GET() {
   try {
-    const [studentRows, onboardingRows] = await Promise.all([
+    const [studentRows, onboardingRows, zoomData] = await Promise.all([
       getStudentListData(),
       getOnboardingFormData(),
+      getZoomReportData(),
     ]);
 
-    // --- Onboarding Form: count rows where col AA = "FALSE" (Not joined community) ---
+    // --- Onboarding Form: community not joined (col AA = "FALSE") ---
     const now = new Date();
     let communityNotJoined = 0;
-    const communityNotJoinedList: { name: string; email: string; phone: string; date: string; leadDays: number | null }[] = [];
+    const communityNotJoinedList: {
+      name: string;
+      email: string;
+      phone: string;
+      date: string;
+      leadDays: number | null;
+    }[] = [];
+
+    // Find country column from onboarding form header row
+    const formHeaderRow = (onboardingRows[0] || []) as string[];
+    const countryColIdx = formHeaderRow.findIndex(
+      (h) => typeof h === "string" && h.toLowerCase().includes("country")
+    );
+
+    // Build email -> country map from onboarding form
+    const emailToCountry: Record<string, string> = {};
+    for (let i = 1; i < onboardingRows.length; i++) {
+      const email = ((onboardingRows[i][6] || "") as string).trim().toLowerCase();
+      const country =
+        countryColIdx >= 0
+          ? ((onboardingRows[i][countryColIdx] || "") as string).trim()
+          : "";
+      if (email && country) {
+        emailToCountry[email] = country;
+      }
+    }
+
     for (let i = 1; i < onboardingRows.length; i++) {
       if ((onboardingRows[i][26] || "").trim().toUpperCase() === "FALSE") {
         communityNotJoined++;
@@ -62,23 +91,35 @@ export async function GET() {
     }
 
     // --- Student List processing ---
-    // Col A (0) = paid date, Col B (1) = name, Col C (2) = email
-    // Col K (10) = status, Col N (13) = onboarding form submitted
-    // Skip header row (index 0)
     const dailyCounts: Record<string, number> = {};
     let totalStudents = 0;
     let onboardingSubmitted = 0;
     let latestDate: Date | null = null;
 
-    const totalStudentsList: { name: string; email: string; phone: string; joinDate: string }[] = [];
-    const onboardingPendingList: { name: string; email: string; phone: string; joinDate: string }[] = [];
-    const onboardingSubmittedList: { name: string; email: string; phone: string; joinDate: string }[] = [];
+    const totalStudentsList: {
+      name: string;
+      email: string;
+      phone: string;
+      joinDate: string;
+    }[] = [];
+    const onboardingPendingList: {
+      name: string;
+      email: string;
+      phone: string;
+      joinDate: string;
+    }[] = [];
+    const onboardingSubmittedList: {
+      name: string;
+      email: string;
+      phone: string;
+      joinDate: string;
+    }[] = [];
 
     for (let i = 1; i < studentRows.length; i++) {
       const row = studentRows[i];
       const rawDate = row[0] || "";
-      const statusCol = (row[10] || "").trim(); // Column K = status
-      const onboardingCol = row[13] || ""; // Column N
+      const statusCol = (row[10] || "").trim();
+      const onboardingCol = row[13] || "";
 
       if (!rawDate) continue;
       if (statusCol.toLowerCase() !== "active") continue;
@@ -107,12 +148,63 @@ export async function GET() {
       }
     }
 
+    // --- Zoom attendance cross-reference (onboarding submitted only) ---
+    const { totalSessions: totalZoomSessions, attendeeSessionMap } = zoomData;
+
+    let zoomAttended = 0;
+    let zoomNotAttended = 0;
+    const studentShowUpRates: {
+      name: string;
+      email: string;
+      rate: number;
+      sessionsAttended: number;
+      totalSessions: number;
+    }[] = [];
+
+    for (const student of onboardingSubmittedList) {
+      const emailLower = student.email.toLowerCase();
+      const attended = (attendeeSessionMap[emailLower] || []).length;
+      const rate =
+        totalZoomSessions > 0
+          ? Math.round((attended / totalZoomSessions) * 100)
+          : 0;
+
+      studentShowUpRates.push({
+        name: student.name,
+        email: student.email,
+        rate,
+        sessionsAttended: attended,
+        totalSessions: totalZoomSessions,
+      });
+
+      if (attended > 0) {
+        zoomAttended++;
+      } else {
+        zoomNotAttended++;
+      }
+    }
+
+    // Sort by rate descending, then by name
+    studentShowUpRates.sort(
+      (a, b) => b.rate - a.rate || a.name.localeCompare(b.name)
+    );
+
+    // --- Country counts (from all onboarding form submissions) ---
+    const countryCounts: Record<string, number> = {};
+    for (let i = 1; i < onboardingRows.length; i++) {
+      if (countryColIdx >= 0) {
+        const country = ((onboardingRows[i][countryColIdx] || "") as string).trim();
+        if (country) {
+          countryCounts[country] = (countryCounts[country] || 0) + 1;
+        }
+      }
+    }
+
     // Build sorted daily series
     const dailySeries = Object.entries(dailyCounts)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, count]) => ({ date, count }));
 
-    // Cumulative series
     let cumulative = 0;
     const cumulativeSeries = dailySeries.map(({ date, count }) => {
       cumulative += count;
@@ -136,6 +228,13 @@ export async function GET() {
       onboardingSubmittedList,
       communityNotJoinedList,
       dailySeries: cumulativeSeries,
+      // Zoom attendance
+      zoomAttended,
+      zoomNotAttended,
+      totalZoomSessions,
+      studentShowUpRates,
+      // Country distribution
+      countryCounts,
     });
   } catch (err) {
     console.error(err);
