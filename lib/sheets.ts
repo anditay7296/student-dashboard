@@ -34,6 +34,30 @@ export async function getOnboardingFormData() {
   return response.data.values || [];
 }
 
+/** Normalise a raw date/datetime string to "YYYY-MM-DD" for deduplication. */
+function normaliseDate(raw: string): string | null {
+  if (!raw) return null;
+  const s = raw.trim();
+  // ISO / yyyy-mm-dd (with or without time)
+  const iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (iso) return iso[1];
+  // M/D/YYYY or MM/DD/YYYY or DD/MM/YYYY — treat first number as month if <= 12
+  const slash = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slash) {
+    const [, a, b, y] = slash;
+    const m = a.padStart(2, "0");
+    const d = b.padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  // D-M-YYYY or M-D-YYYY with dashes
+  const dash = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
+  if (dash) {
+    const [, a, b, y] = dash;
+    return `${y}-${a.padStart(2, "0")}-${b.padStart(2, "0")}`;
+  }
+  return null;
+}
+
 export async function getZoomReportData(): Promise<{
   totalSessions: number;
   sessions: string[];
@@ -55,14 +79,15 @@ export async function getZoomReportData(): Promise<{
     return { totalSessions: 0, sessions: [], attendeeSessionMap: {} };
   }
 
-  const sessions: string[] = [];
-  const attendeeSessionMap: Record<string, string[]> = {};
+  // email -> Set of session identifiers (unique dates or sheet names)
+  const attendeeMap: Record<string, Set<string>> = {};
+  const uniqueSessions = new Set<string>();
 
   for (const sheetName of sheetNames) {
     try {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: zoomId,
-        range: `'${sheetName}'!A:H`,
+        range: `'${sheetName}'!A:Z`,
       });
       const rows = (response.data.values || []) as string[][];
       if (rows.length < 2) continue;
@@ -77,26 +102,45 @@ export async function getZoomReportData(): Promise<{
       }
       if (headerIdx < 0) continue;
 
-      const header = rows[headerIdx];
+      const header = rows[headerIdx] as string[];
+
       const emailCol = header.findIndex((h) =>
         h?.toLowerCase?.().includes("email")
       );
       if (emailCol < 0) continue;
 
-      sessions.push(sheetName);
+      // Look for a date column (header containing "date" or "time")
+      const dateCol = header.findIndex((h) =>
+        h?.toLowerCase?.().includes("date") ||
+        h?.toLowerCase?.().includes("join time") ||
+        h?.toLowerCase?.().includes("session")
+      );
 
       for (let i = headerIdx + 1; i < rows.length; i++) {
         const email = (rows[i][emailCol] || "").trim().toLowerCase();
-        if (email && email.includes("@")) {
-          if (!attendeeSessionMap[email]) attendeeSessionMap[email] = [];
-          if (!attendeeSessionMap[email].includes(sheetName)) {
-            attendeeSessionMap[email].push(sheetName);
-          }
+        if (!email || !email.includes("@")) continue;
+
+        // Determine session identifier: prefer a normalised date, fall back to sheet name
+        let sessionId = sheetName;
+        if (dateCol >= 0) {
+          const raw = (rows[i][dateCol] || "").trim();
+          const nd = normaliseDate(raw);
+          if (nd) sessionId = nd;
         }
+
+        uniqueSessions.add(sessionId);
+        if (!attendeeMap[email]) attendeeMap[email] = new Set();
+        attendeeMap[email].add(sessionId);
       }
     } catch {
       // skip sheets that error
     }
+  }
+
+  const sessions = [...uniqueSessions].sort();
+  const attendeeSessionMap: Record<string, string[]> = {};
+  for (const [email, set] of Object.entries(attendeeMap)) {
+    attendeeSessionMap[email] = [...set].sort();
   }
 
   return { totalSessions: sessions.length, sessions, attendeeSessionMap };
