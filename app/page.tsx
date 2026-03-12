@@ -84,14 +84,36 @@ const ISO_TO_NAME: Record<string, string> = {
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
+// Smooth heatmap: interpolates across color stops based on 0-1 value
+function heatColor(t: number): string {
+  // stops: light yellow → orange → red → dark red
+  const stops = [
+    { t: 0,    r: 254, g: 243, b: 199 }, // #FEF3C7 very light amber
+    { t: 0.25, r: 252, g: 211, b: 77  }, // #FCD34D yellow
+    { t: 0.5,  r: 249, g: 115, b: 22  }, // #F97316 orange
+    { t: 0.75, r: 239, g: 68,  b: 68  }, // #EF4444 red
+    { t: 1,    r: 127, g: 29,  b: 29  }, // #7F1D1D dark red
+  ];
+  const clamped = Math.max(0, Math.min(1, t));
+  let lo = stops[0], hi = stops[stops.length - 1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (clamped >= stops[i].t && clamped <= stops[i + 1].t) {
+      lo = stops[i]; hi = stops[i + 1]; break;
+    }
+  }
+  const range = hi.t - lo.t || 1;
+  const local = (clamped - lo.t) / range;
+  const r = Math.round(lo.r + (hi.r - lo.r) * local);
+  const g = Math.round(lo.g + (hi.g - lo.g) * local);
+  const b = Math.round(lo.b + (hi.b - lo.b) * local);
+  return `rgb(${r},${g},${b})`;
+}
+
 function getCountryColor(count: number, maxCount: number): string {
-  if (count === 0) return "#E5E7EB";
-  const t = count / Math.max(maxCount, 1);
-  if (t >= 0.7) return "#1D4ED8";
-  if (t >= 0.4) return "#2563EB";
-  if (t >= 0.2) return "#3B82F6";
-  if (t >= 0.08) return "#60A5FA";
-  return "#BFDBFE";
+  if (count === 0) return "#F3F4F6";
+  // Use square-root scale so small counts still show color
+  const t = Math.sqrt(count / Math.max(maxCount, 1));
+  return heatColor(t);
 }
 
 function getBarColor(rate: number): string {
@@ -357,7 +379,7 @@ function WorldMap({ countryCounts }: { countryCounts: Record<string, number> }) 
                   style={{
                     default: { outline: "none" },
                     hover: {
-                      fill: count > 0 ? "#1E40AF" : "#D1D5DB",
+                      fill: count > 0 ? "#1F2937" : "#D1D5DB",
                       outline: "none",
                       cursor: count > 0 ? "pointer" : "default",
                     },
@@ -381,24 +403,18 @@ function WorldMap({ countryCounts }: { countryCounts: Record<string, number> }) 
         </div>
       )}
 
-      {/* Legend */}
-      <div className="flex items-center gap-3 mt-3 flex-wrap text-xs text-gray-500">
-        <span className="font-medium text-gray-700">Students:</span>
-        {[
-          { color: "#BFDBFE", label: "1-few" },
-          { color: "#60A5FA", label: "some" },
-          { color: "#3B82F6", label: "many" },
-          { color: "#1D4ED8", label: "most" },
-          { color: "#E5E7EB", label: "none" },
-        ].map(({ color, label }) => (
-          <span key={label} className="flex items-center gap-1">
-            <span
-              className="inline-block w-3 h-3 rounded-sm border border-gray-200"
-              style={{ backgroundColor: color }}
-            />
-            {label}
-          </span>
-        ))}
+      {/* Heatmap gradient legend */}
+      <div className="mt-4 flex items-center gap-3 text-xs text-gray-500">
+        <span className="shrink-0 text-gray-400">0</span>
+        <div className="relative flex-1 h-3 rounded-full overflow-hidden border border-gray-200"
+          style={{
+            background:
+              "linear-gradient(to right, #FEF3C7, #FCD34D, #F97316, #EF4444, #7F1D1D)",
+          }}
+        />
+        <span className="shrink-0 text-gray-700 font-semibold">
+          {Math.max(...Object.values(countryCounts), 0)} students
+        </span>
       </div>
 
       {/* Country count table */}
