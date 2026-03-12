@@ -18,43 +18,180 @@ import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 
 // ---------------------------------------------------------------------------
 // Country name → ISO 3166-1 numeric code (for world-atlas TopoJSON)
+// Includes: full names, common short forms, ISO 2-letter codes, typos
 // ---------------------------------------------------------------------------
 const COUNTRY_ISO: Record<string, string> = {
-  afghanistan: "4", albania: "8", algeria: "12", angola: "24",
-  argentina: "32", australia: "36", austria: "40", azerbaijan: "31",
-  bangladesh: "50", belarus: "112", belgium: "56", benin: "204",
-  bolivia: "68", brazil: "76", brunei: "96", bulgaria: "100",
-  cambodia: "116", cameroon: "120", canada: "124", chile: "152",
-  china: "156", colombia: "170", congo: "180", "costa rica": "188",
-  croatia: "191", cuba: "192", "czech republic": "203", denmark: "208",
-  ecuador: "218", egypt: "818", ethiopia: "231", finland: "246",
-  france: "250", gabon: "266", germany: "276", ghana: "288",
-  greece: "300", guatemala: "320", guinea: "324", haiti: "332",
-  honduras: "340", "hong kong": "344", hungary: "348", india: "356",
-  indonesia: "360", iran: "364", iraq: "368", ireland: "372",
-  israel: "376", italy: "380", "ivory coast": "384", jamaica: "388",
-  japan: "392", jordan: "400", kazakhstan: "398", kenya: "404",
-  "south korea": "410", korea: "410", kuwait: "414", laos: "418",
-  latvia: "428", lebanon: "422", libya: "434", lithuania: "440",
-  malaysia: "458", mali: "466", mauritania: "478", mexico: "484",
-  moldova: "498", mongolia: "496", morocco: "504", mozambique: "508",
-  myanmar: "104", namibia: "516", nepal: "524", netherlands: "528",
-  "new zealand": "554", nicaragua: "558", niger: "562", nigeria: "566",
-  norway: "578", oman: "512", pakistan: "586", panama: "591",
-  paraguay: "600", peru: "604", philippines: "608", poland: "616",
-  portugal: "620", qatar: "634", romania: "642", russia: "643",
-  rwanda: "646", "saudi arabia": "682", senegal: "686", singapore: "702",
-  slovakia: "703", somalia: "706", "south africa": "710",
-  "south sudan": "728", spain: "724", "sri lanka": "144", sudan: "729",
-  sweden: "752", switzerland: "756", syria: "760", taiwan: "158",
-  tajikistan: "762", tanzania: "834", thailand: "764", togo: "768",
-  "trinidad and tobago": "780", tunisia: "788", turkey: "792",
-  turkmenistan: "795", uganda: "800", ukraine: "804",
-  "united arab emirates": "784", uae: "784",
-  "united kingdom": "826", uk: "826",
-  "united states": "840", usa: "840", "united states of america": "840", us: "840",
-  uruguay: "858", uzbekistan: "860", venezuela: "862", vietnam: "704",
-  yemen: "887", zambia: "894", zimbabwe: "716",
+  // ── Afghanistan ──────────────────────────────────────────────
+  afghanistan: "4", af: "4",
+  // ── Albania ──────────────────────────────────────────────────
+  albania: "8", al: "8",
+  // ── Algeria ──────────────────────────────────────────────────
+  algeria: "12", dz: "12",
+  // ── Angola ───────────────────────────────────────────────────
+  angola: "24", ao: "24",
+  // ── Argentina ────────────────────────────────────────────────
+  argentina: "32", ar: "32",
+  // ── Australia ────────────────────────────────────────────────
+  australia: "36", au: "36", aus: "36",
+  // ── Austria ──────────────────────────────────────────────────
+  austria: "40", at: "40",
+  // ── Azerbaijan ───────────────────────────────────────────────
+  azerbaijan: "31", az: "31",
+  // ── Bangladesh ───────────────────────────────────────────────
+  bangladesh: "50", bd: "50",
+  // ── Belgium ──────────────────────────────────────────────────
+  belgium: "56", be: "56",
+  // ── Brazil ───────────────────────────────────────────────────
+  brazil: "76", brasil: "76", br: "76",
+  // ── Brunei ───────────────────────────────────────────────────
+  brunei: "96", "brunei darussalam": "96", bn: "96",
+  // ── Cambodia ─────────────────────────────────────────────────
+  cambodia: "116", kh: "116",
+  // ── Cameroon ─────────────────────────────────────────────────
+  cameroon: "120", cm: "120",
+  // ── Canada ───────────────────────────────────────────────────
+  canada: "124", ca: "124",
+  // ── Chile ────────────────────────────────────────────────────
+  chile: "152", cl: "152",
+  // ── China ────────────────────────────────────────────────────
+  china: "156", cn: "156", "people's republic of china": "156", prc: "156",
+  // ── Colombia ─────────────────────────────────────────────────
+  colombia: "170", co: "170",
+  // ── Czech Republic ───────────────────────────────────────────
+  "czech republic": "203", czechia: "203", cz: "203",
+  // ── Denmark ──────────────────────────────────────────────────
+  denmark: "208", dk: "208",
+  // ── Egypt ────────────────────────────────────────────────────
+  egypt: "818", eg: "818",
+  // ── Ethiopia ─────────────────────────────────────────────────
+  ethiopia: "231", et: "231",
+  // ── Finland ──────────────────────────────────────────────────
+  finland: "246", fi: "246",
+  // ── France ───────────────────────────────────────────────────
+  france: "250", fr: "250",
+  // ── Germany ──────────────────────────────────────────────────
+  germany: "276", de: "276", deutschland: "276",
+  // ── Ghana ────────────────────────────────────────────────────
+  ghana: "288", gh: "288",
+  // ── Greece ───────────────────────────────────────────────────
+  greece: "300", gr: "300",
+  // ── Hong Kong ────────────────────────────────────────────────
+  "hong kong": "344", hongkong: "344", hk: "344",
+  // ── Hungary ──────────────────────────────────────────────────
+  hungary: "348", hu: "348",
+  // ── India ────────────────────────────────────────────────────
+  india: "356", in: "356",
+  // ── Indonesia ────────────────────────────────────────────────
+  indonesia: "360", id: "360",
+  // ── Iran ─────────────────────────────────────────────────────
+  iran: "364", ir: "364",
+  // ── Iraq ─────────────────────────────────────────────────────
+  iraq: "368", iq: "368",
+  // ── Ireland ──────────────────────────────────────────────────
+  ireland: "372", ie: "372",
+  // ── Israel ───────────────────────────────────────────────────
+  israel: "376", il: "376",
+  // ── Italy ────────────────────────────────────────────────────
+  italy: "380", it: "380",
+  // ── Japan ────────────────────────────────────────────────────
+  japan: "392", jp: "392",
+  // ── Jordan ───────────────────────────────────────────────────
+  jordan: "400", jo: "400",
+  // ── Kazakhstan ───────────────────────────────────────────────
+  kazakhstan: "398", kz: "398",
+  // ── Kenya ────────────────────────────────────────────────────
+  kenya: "404", ke: "404",
+  // ── South Korea ──────────────────────────────────────────────
+  "south korea": "410", korea: "410", "republic of korea": "410", kr: "410",
+  // ── Kuwait ───────────────────────────────────────────────────
+  kuwait: "414", kw: "414",
+  // ── Laos ─────────────────────────────────────────────────────
+  laos: "418", lao: "418", la: "418",
+  // ── Lebanon ──────────────────────────────────────────────────
+  lebanon: "422", lb: "422",
+  // ── Malaysia ─────────────────────────────────────────────────
+  malaysia: "458", "malaysia ": "458", my: "458", mys: "458",
+  // ── Mexico ───────────────────────────────────────────────────
+  mexico: "484", mx: "484", méxico: "484",
+  // ── Morocco ──────────────────────────────────────────────────
+  morocco: "504", ma: "504",
+  // ── Myanmar / Burma ──────────────────────────────────────────
+  myanmar: "104", burma: "104", mm: "104",
+  // ── Nepal ────────────────────────────────────────────────────
+  nepal: "524", np: "524",
+  // ── Netherlands ──────────────────────────────────────────────
+  netherlands: "528", "the netherlands": "528", holland: "528", nl: "528",
+  // ── New Zealand ──────────────────────────────────────────────
+  "new zealand": "554", nz: "554",
+  // ── Nigeria ──────────────────────────────────────────────────
+  nigeria: "566", ng: "566",
+  // ── Norway ───────────────────────────────────────────────────
+  norway: "578", no: "578",
+  // ── Pakistan ─────────────────────────────────────────────────
+  pakistan: "586", pk: "586",
+  // ── Peru ─────────────────────────────────────────────────────
+  peru: "604", pe: "604",
+  // ── Philippines ──────────────────────────────────────────────
+  philippines: "608", "the philippines": "608", ph: "608", phl: "608",
+  // ── Poland ───────────────────────────────────────────────────
+  poland: "616", pl: "616",
+  // ── Portugal ─────────────────────────────────────────────────
+  portugal: "620", pt: "620",
+  // ── Qatar ────────────────────────────────────────────────────
+  qatar: "634", qa: "634",
+  // ── Romania ──────────────────────────────────────────────────
+  romania: "642", ro: "642",
+  // ── Russia ───────────────────────────────────────────────────
+  russia: "643", "russian federation": "643", ru: "643",
+  // ── Saudi Arabia ─────────────────────────────────────────────
+  "saudi arabia": "682", sa: "682",
+  // ── Singapore ────────────────────────────────────────────────
+  singapore: "702", sg: "702", sgp: "702",
+  // ── South Africa ─────────────────────────────────────────────
+  "south africa": "710", za: "710",
+  // ── Spain ────────────────────────────────────────────────────
+  spain: "724", es: "724", españa: "724",
+  // ── Sri Lanka ────────────────────────────────────────────────
+  "sri lanka": "144", lk: "144",
+  // ── Sweden ───────────────────────────────────────────────────
+  sweden: "752", se: "752",
+  // ── Switzerland ──────────────────────────────────────────────
+  switzerland: "756", ch: "756",
+  // ── Taiwan ───────────────────────────────────────────────────
+  taiwan: "158", tw: "158",
+  // ── Thailand ─────────────────────────────────────────────────
+  thailand: "764", th: "764", tha: "764",
+  // ── Turkey ───────────────────────────────────────────────────
+  turkey: "792", türkiye: "792", turkiye: "792", tr: "792",
+  // ── Uganda ───────────────────────────────────────────────────
+  uganda: "800", ug: "800",
+  // ── Ukraine ──────────────────────────────────────────────────
+  ukraine: "804", ua: "804",
+  // ── United Arab Emirates ─────────────────────────────────────
+  "united arab emirates": "784", uae: "784", ae: "784",
+  // ── United Kingdom ───────────────────────────────────────────
+  "united kingdom": "826", uk: "826", "great britain": "826",
+  england: "826", gb: "826",
+  // ── United States ────────────────────────────────────────────
+  "united states": "840", usa: "840", "united states of america": "840",
+  us: "840", "u.s.a.": "840", "u.s.": "840",
+  // ── Vietnam ──────────────────────────────────────────────────
+  vietnam: "704", "viet nam": "704", vn: "704", vnm: "704",
+  // ── Others ───────────────────────────────────────────────────
+  bolivia: "68", bulgaria: "100",
+  "costa rica": "188", croatia: "191", cuba: "192",
+  gabon: "266", guatemala: "320",
+  guinea: "324", haiti: "332", honduras: "340", "ivory coast": "384",
+  jamaica: "388", latvia: "428", libya: "434",
+  lithuania: "440", mauritania: "478", moldova: "498",
+  mozambique: "508", namibia: "516",
+  nicaragua: "558", niger: "562", panama: "591",
+  paraguay: "600", rwanda: "646", senegal: "686", slovakia: "703",
+  somalia: "706", "south sudan": "728", sudan: "729",
+  syria: "760", tajikistan: "762", togo: "768",
+  "trinidad and tobago": "780", tunisia: "788", turkmenistan: "795",
+  uruguay: "858", uzbekistan: "860",
+  congo: "180",
 };
 
 const ISO_TO_NAME: Record<string, string> = {
@@ -325,9 +462,25 @@ function WorldMap({ countryCounts }: { countryCounts: Record<string, number> }) 
   const maxCount = Math.max(...Object.values(countryCounts), 1);
 
   // Build iso numeric string -> student count
+  // Strategy: exact match → starts-with match → contains match
   const isoCount: Record<string, number> = {};
   for (const [country, count] of Object.entries(countryCounts)) {
-    const iso = COUNTRY_ISO[country.toLowerCase().trim()];
+    const key = country.toLowerCase().trim();
+    let iso = COUNTRY_ISO[key];
+
+    if (!iso) {
+      // Try starts-with (e.g. "Malaysia (MY)" → "malaysia")
+      for (const [k, v] of Object.entries(COUNTRY_ISO)) {
+        if (key.startsWith(k) || k.startsWith(key)) { iso = v; break; }
+      }
+    }
+    if (!iso) {
+      // Try contains (e.g. "South Korea (KR)" → "south korea")
+      for (const [k, v] of Object.entries(COUNTRY_ISO)) {
+        if (k.length > 2 && (key.includes(k) || k.includes(key))) { iso = v; break; }
+      }
+    }
+
     if (iso) {
       isoCount[iso] = (isoCount[iso] || 0) + count;
     }
