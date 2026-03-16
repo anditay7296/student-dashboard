@@ -52,6 +52,7 @@ export async function GET() {
       phone: string;
       date: string;
       leadDays: number | null;
+      paymentAmount: string;
     }[] = [];
 
     // Find country column from onboarding form header row
@@ -90,6 +91,7 @@ export async function GET() {
           phone: (onboardingRows[i][5] || "").trim(),
           date: (onboardingRows[i][0] || "").trim(),
           leadDays,
+          paymentAmount: ((onboardingRows[i][18] || "") as string).trim(),
         });
       }
     }
@@ -111,6 +113,7 @@ export async function GET() {
       email: string;
       phone: string;
       joinDate: string;
+      paymentAmount: string;
     }[] = [];
     const onboardingSubmittedList: {
       name: string;
@@ -148,7 +151,10 @@ export async function GET() {
         onboardingSubmitted++;
         onboardingSubmittedList.push(entry);
       } else {
-        onboardingPendingList.push(entry);
+        onboardingPendingList.push({
+          ...entry,
+          paymentAmount: (row[6] || "").trim(),
+        });
       }
     }
 

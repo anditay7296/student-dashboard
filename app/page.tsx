@@ -275,6 +275,7 @@ interface StudentEntry {
   email: string;
   phone: string;
   joinDate: string;
+  paymentAmount?: string;
 }
 
 interface StudentShowUpRate {
@@ -300,6 +301,7 @@ interface Stats {
     phone: string;
     date: string;
     leadDays: number | null;
+    paymentAmount: string;
   }[];
   dailySeries: DailyEntry[];
   zoomAttended: number;
@@ -691,7 +693,34 @@ export default function Dashboard() {
     pending: {
       label: "Onboarding Pending",
       count: stats?.onboardingPending ?? 0,
-      content: <StudentTable rows={stats?.onboardingPendingList ?? []} />,
+      content: (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="py-2 pr-6 font-semibold text-gray-600 w-6">#</th>
+                <th className="py-2 pr-6 font-semibold text-gray-600">Name</th>
+                <th className="py-2 pr-6 font-semibold text-gray-600">Email</th>
+                <th className="py-2 pr-6 font-semibold text-gray-600">Phone</th>
+                <th className="py-2 pr-6 font-semibold text-gray-600">Payment Amount</th>
+                <th className="py-2 font-semibold text-gray-600">Join Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(stats?.onboardingPendingList ?? []).map((r, i) => (
+                <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-2 pr-6 text-gray-400">{i + 1}</td>
+                  <td className="py-2 pr-6 text-gray-800">{r.name || "—"}</td>
+                  <td className="py-2 pr-6 text-gray-500">{r.email || "—"}</td>
+                  <td className="py-2 pr-6 text-gray-500">{r.phone || "—"}</td>
+                  <td className="py-2 pr-6 text-gray-500">{r.paymentAmount || "—"}</td>
+                  <td className="py-2 text-gray-500">{r.joinDate || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ),
     },
     notJoined: {
       label: "Not Joined Community",
@@ -705,6 +734,7 @@ export default function Dashboard() {
                 <th className="py-2 pr-6 font-semibold text-gray-600">Name</th>
                 <th className="py-2 pr-6 font-semibold text-gray-600">Email</th>
                 <th className="py-2 pr-6 font-semibold text-gray-600">Phone</th>
+                <th className="py-2 pr-6 font-semibold text-gray-600">Payment Amount</th>
                 <th className="py-2 pr-6 font-semibold text-gray-600">Date</th>
                 <th className="py-2 pr-6 font-semibold text-gray-600">Leak Time</th>
                 <th className="py-2 font-semibold text-gray-600">Remark</th>
@@ -732,6 +762,7 @@ export default function Dashboard() {
                     <td className={`py-2 pr-6 ${overdue ? "text-red-700 font-bold" : "text-gray-800"}`}>{r.name || "—"}</td>
                     <td className={`py-2 pr-6 ${overdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{r.email || "—"}</td>
                     <td className={`py-2 pr-6 ${overdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{r.phone || "—"}</td>
+                    <td className={`py-2 pr-6 ${overdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{r.paymentAmount || "—"}</td>
                     <td className={`py-2 pr-6 ${overdue ? "text-red-600 font-bold" : "text-gray-500"}`}>{r.date || "—"}</td>
                     <td className={`py-2 pr-6 ${overdue ? "text-red-700 font-bold" : "text-gray-500"}`}>
                       {r.leadDays === null ? "—" : r.leadDays}
