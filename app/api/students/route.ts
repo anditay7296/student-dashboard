@@ -74,6 +74,10 @@ export async function GET() {
     }
 
     for (let i = 1; i < onboardingRows.length; i++) {
+      // Skip refunded students (column AJ = index 35, value may contain emoji e.g. "⛔ Refunded")
+      const refundedCol = ((onboardingRows[i][35] || "") as string).trim().toLowerCase();
+      if (refundedCol.includes("refund")) continue;
+
       if ((onboardingRows[i][26] || "").trim().toUpperCase() === "FALSE") {
         communityNotJoined++;
         const formDate = parseDate(onboardingRows[i][0] || "");
