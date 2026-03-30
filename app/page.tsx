@@ -746,7 +746,7 @@ export default function Dashboard() {
       ),
     },
     notJoined: {
-      label: "Not Joined Community",
+      label: "Not Joined Community - Sekolah/Circle",
       count: stats?.communityNotJoined ?? 0,
       content: (
         <div className="overflow-x-auto">
@@ -863,7 +863,7 @@ export default function Dashboard() {
           onClick={() => toggleCard("pending")}
         />
         <StatCard
-          label="Not Joined Community"
+          label="Not Joined Community - Sekolah/Circle"
           value={stats?.communityNotJoined ?? 0}
           sub="via onboarding form (col AA = FALSE)"
           color="bg-orange-50 border-orange-100"
