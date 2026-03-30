@@ -601,6 +601,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [selected, setSelected] = useState<CardKey | null>(null);
+  const [copied, setCopied] = useState(false);
   const [mapMounted, setMapMounted] = useState(false);
 
   async function fetchData() {
@@ -667,6 +668,28 @@ export default function Dashboard() {
 
   function toggleCard(key: CardKey) {
     setSelected((prev) => (prev === key ? null : key));
+    setCopied(false);
+  }
+
+  function getEmailsForCard(key: CardKey): string[] {
+    if (!stats) return [];
+    const lists: Record<CardKey, { email: string }[]> = {
+      total: stats.totalStudentsList,
+      submitted: stats.onboardingSubmittedList,
+      pending: stats.onboardingPendingList,
+      notJoined: stats.communityNotJoinedList,
+      zoomAttended: (stats.studentShowUpRates ?? []).filter((s) => s.sessionsAttended > 0),
+      zoomNotAttended: (stats.studentShowUpRates ?? []).filter((s) => s.sessionsAttended === 0),
+    };
+    return lists[key].map((r) => r.email).filter(Boolean);
+  }
+
+  async function copyEmails() {
+    if (!selected) return;
+    const emails = getEmailsForCard(selected);
+    await navigator.clipboard.writeText(emails.join(", "));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   const zoomAttendedStudents = (stats?.studentShowUpRates ?? []).filter(
@@ -887,12 +910,20 @@ export default function Dashboard() {
                 ({listConfig[selected].count} students)
               </span>
             </h2>
-            <button
-              onClick={() => setSelected(null)}
-              className="text-gray-400 hover:text-gray-600 text-xl font-light leading-none"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={copyEmails}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
+              >
+                {copied ? "Copied!" : "Copy WhatsApp"}
+              </button>
+              <button
+                onClick={() => setSelected(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl font-light leading-none"
+              >
+                ✕
+              </button>
+            </div>
           </div>
           {listConfig[selected].content}
         </div>
