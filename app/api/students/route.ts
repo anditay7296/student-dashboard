@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import {
-  getStudentListData,
-  getOnboardingFormData,
-  getZoomReportData,
+  getCachedStudentListData,
+  getCachedOnboardingFormData,
+  getCachedZoomReportData,
 } from "@/lib/sheets";
+import { revalidateTag } from "next/cache";
 import { parse, format, isValid } from "date-fns";
 
 function parseDate(raw: string): Date | null {
@@ -35,12 +36,19 @@ function parseDate(raw: string): Date | null {
   return null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const forceRefresh = searchParams.get("refresh") === "true";
+
+    if (forceRefresh) {
+      revalidateTag("students", "max");
+    }
+
     const [studentRows, onboardingRows, zoomData] = await Promise.all([
-      getStudentListData(),
-      getOnboardingFormData(),
-      getZoomReportData(),
+      getCachedStudentListData(),
+      getCachedOnboardingFormData(),
+      getCachedZoomReportData(),
     ]);
 
     // --- Onboarding Form: community not joined (col AA = "FALSE") ---
@@ -245,6 +253,12 @@ export async function GET() {
       studentShowUpRates,
       // Country distribution
       countryCounts,
+    }, {
+      headers: {
+        "Cache-Control": forceRefresh
+          ? "no-cache"
+          : "s-maxage=86400, stale-while-revalidate=3600",
+      },
     });
   } catch (err) {
     console.error(err);

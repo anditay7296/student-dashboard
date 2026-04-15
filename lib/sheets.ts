@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { unstable_cache } from "next/cache";
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID!;
 
@@ -145,3 +146,22 @@ export async function getZoomReportData(): Promise<{
 
   return { totalSessions: sessions.length, sessions, attendeeSessionMap };
 }
+
+// Cached versions — revalidate once per day, tagged for on-demand invalidation
+export const getCachedStudentListData = unstable_cache(
+  getStudentListData,
+  ["student-list-data"],
+  { revalidate: 86400, tags: ["students"] }
+);
+
+export const getCachedOnboardingFormData = unstable_cache(
+  getOnboardingFormData,
+  ["onboarding-form-data"],
+  { revalidate: 86400, tags: ["students"] }
+);
+
+export const getCachedZoomReportData = unstable_cache(
+  getZoomReportData,
+  ["zoom-report-data"],
+  { revalidate: 86400, tags: ["students"] }
+);

@@ -604,10 +604,11 @@ export default function Dashboard() {
   const [copied, setCopied] = useState(false);
   const [mapMounted, setMapMounted] = useState(false);
 
-  async function fetchData() {
+  async function fetchData(force = false) {
     try {
       setLoading(true);
-      const res = await fetch("/api/students");
+      const url = force ? "/api/students?refresh=true" : "/api/students";
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setStats(data);
@@ -621,8 +622,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
   }, []);
 
   // Delay map render to avoid SSR hydration mismatch
@@ -823,11 +822,11 @@ export default function Dashboard() {
           {stats?.headlineDate && (
             <p className="text-2xl font-semibold text-blue-600 mt-1">{stats.headlineDate}</p>
           )}
-          <p className="text-gray-400 text-sm mt-1">Live data from Google Sheets</p>
+          <p className="text-gray-400 text-sm mt-1">Daily refresh from Google Sheets</p>
         </div>
         <div className="text-right">
           <button
-            onClick={fetchData}
+            onClick={() => fetchData(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
           >
             Refresh
